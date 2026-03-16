@@ -1,11 +1,11 @@
 # AnyPay — Universal Value Router (MVP)
 
-AnyPay is a **mobile-first** web app that lets users **authenticate, manage a multi-asset wallet, get a quote (route), and execute a conversion** while tracking transactions in real time via Supabase Edge Functions.
+AnyPay is a **mobile-first** web app that lets users **authenticate, manage a multi-asset wallet, get a quote (route), and execute a conversion** using a localStorage-backed mock backend (no external services required).
 
 ## Features (implemented in this repo)
 
-- **Auth**: Email/password sign up + sign in (Supabase Auth)
-- **Wallet**: Multi-currency balances (USD, BTC, ETH, USDT, NGN) backed by Supabase storage
+- **Auth**: Email/password sign up + sign in (local mock auth via `localStorage`)
+- **Wallet**: Multi-currency balances (USD, BTC, ETH, USDT, NGN) stored locally via `localStorage`
 - **Top up / Withdraw**: Internal-ledger wallet operations (MVP-ready primitives)
 - **Routing / Quote**: Returns an “optimal route” quote for a conversion
 - **Swap execution**: Creates a transaction and completes it (ledger update)
@@ -17,29 +17,24 @@ AnyPay is a **mobile-first** web app that lets users **authenticate, manage a mu
 
 - **Frontend**: React + TypeScript + Vite
 - **UI**: Tailwind CSS + shadcn/ui (Radix primitives)
-- **Backend**: Supabase (Auth + Edge Functions + Postgres table-backed KV store)
+- **Backend**: Local mock backend (auth + wallet + routing + transactions) stored in `localStorage`
 
 ## Repo layout
 
 - `index.html`: Vite entry HTML
 - `vite.config.ts`: Vite config (port 3000)
 - `src/`: React app
-- `src/supabase/functions/server/`: Supabase Edge Function (Hono) that powers wallet/route/transactions/stats
+
 
 ## Getting started (local)
 
 ### Prerequisites
 
 - Node.js 18+ (recommended: latest LTS)
-- A Supabase project
 
-### 1) Configure environment
+### 1) Environment
 
-Copy `.env.example` → `.env.local` and fill:
-
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
-- (optional) `VITE_SUPABASE_FUNCTIONS_PREFIX` (default is `make-server-ed0cf80c`)
+No external environment variables are required. The app runs entirely against a **localStorage-backed mock backend** (auth + wallet + routing + transactions).
 
 ### 2) Install
 

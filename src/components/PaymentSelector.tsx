@@ -72,8 +72,17 @@ const paymentMethods = [
   }
 ];
 
-export function PaymentSelector() {
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+export type PayMethodId = (typeof paymentMethods)[number]["id"];
+
+export function PaymentSelector({
+  value,
+  onChange,
+}: {
+  value: PayMethodId | null;
+  onChange: (value: PayMethodId) => void;
+}) {
+  const [uncontrolledValue, setUncontrolledValue] = useState<PayMethodId | null>(null);
+  const selectedMethod = value ?? uncontrolledValue;
 
   return (
     <motion.div
@@ -96,7 +105,10 @@ export function PaymentSelector() {
                 name={method.name}
                 description={method.description}
                 isSelected={selectedMethod === method.id}
-                onClick={() => setSelectedMethod(method.id)}
+                onClick={() => {
+                  setUncontrolledValue(method.id);
+                  onChange(method.id);
+                }}
                 color={method.color}
               />
             </motion.div>

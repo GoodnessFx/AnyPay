@@ -72,8 +72,17 @@ const settlementMethods = [
   }
 ];
 
-export function ReceiveSelector() {
-  const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
+export type ReceiveMethodId = (typeof settlementMethods)[number]["id"];
+
+export function ReceiveSelector({
+  value,
+  onChange,
+}: {
+  value: ReceiveMethodId | null;
+  onChange: (value: ReceiveMethodId) => void;
+}) {
+  const [uncontrolledValue, setUncontrolledValue] = useState<ReceiveMethodId | null>(null);
+  const selectedMethod = value ?? uncontrolledValue;
 
   return (
     <motion.div
@@ -96,7 +105,10 @@ export function ReceiveSelector() {
                 name={method.name}
                 description={method.description}
                 isSelected={selectedMethod === method.id}
-                onClick={() => setSelectedMethod(method.id)}
+                onClick={() => {
+                  setUncontrolledValue(method.id);
+                  onChange(method.id);
+                }}
                 color={method.color}
               />
             </motion.div>

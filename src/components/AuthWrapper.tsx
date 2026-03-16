@@ -1,11 +1,10 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { motion } from "motion/react";
-import { getSupabaseClient } from "../utils/supabase/client";
-import { functionsPrefix, publicAnonKey, supabaseUrl } from "../utils/supabase/info";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 import { ArrowLeftRight, LogIn, UserPlus } from "lucide-react";
+import { mockGetSessionUser, mockSignIn, mockSignOut, mockSignUp } from "../mocks/mockBackend";
 
 interface User {
   id: string;
@@ -38,86 +37,20 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
 
-  const [supabaseError, setSupabaseError] = useState<string | null>(null);
-  const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseClient> | null>(null);
-
   useEffect(() => {
-    try {
-      setSupabase(getSupabaseClient());
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Supabase configuration error";
-      setSupabaseError(msg);
-      setSupabase(null);
+    const sessionUser = mockGetSessionUser();
+    if (sessionUser) {
+      setUser(sessionUser);
+      setAccessToken("mock");
     }
+    setLoading(false);
   }, []);
-
-  useEffect(() => {
-    if (!supabase) {
-      setLoading(false);
-      return;
-    }
-    // Check for existing session
-    const checkSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session && !error) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email!,
-            name: session.user.user_metadata?.name
-          });
-          setAccessToken(session.access_token);
-        }
-      } catch (error) {
-        console.log("Session check error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email!,
-            name: session.user.user_metadata?.name
-          });
-          setAccessToken(session.access_token);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setAccessToken(null);
-        }
-      }
-    );
-
-    checkSession();
-
-    // Cleanup subscription on unmount
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   const signIn = async (email: string, password: string) => {
     try {
-      if (!supabase) throw new Error("Supabase not configured");
-      const { data: { session }, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (error) throw error;
-
-      if (session) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata?.name
-        });
-        setAccessToken(session.access_token);
-      }
+      const u = mockSignIn(email, password);
+      setUser(u);
+      setAccessToken("mock");
     } catch (error) {
       console.log("Sign in error:", error);
       throw error;
@@ -126,23 +59,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
-      if (!supabaseUrl || !functionsPrefix || !publicAnonKey) throw new Error("Supabase not configured");
-      const response = await fetch(`${supabaseUrl}/functions/v1/${functionsPrefix}/auth/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${publicAnonKey}`
-        },
-        body: JSON.stringify({ email, password, name })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Signup failed');
-      }
-
-      // After successful signup, sign in
-      await signIn(email, password);
+      const u = mockSignUp(email, password, name);
+      setUser(u);
+      setAccessToken("mock");
     } catch (error) {
       console.log("Sign up error:", error);
       throw error;
@@ -151,8 +70,7 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      if (!supabase) throw new Error("Supabase not configured");
-      await supabase.auth.signOut();
+      mockSignOut();
       setUser(null);
       setAccessToken(null);
     } catch (error) {
@@ -172,37 +90,9 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (supabaseError) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
-        <Card className="p-6 max-w-lg w-full">
-          <h1 className="text-xl font-semibold text-gray-900">Setup required</h1>
-          <p className="text-sm text-gray-600 mt-2">
-            This app needs Supabase environment variables before it can run.
-          </p>
-          <div className="mt-4 p-3 rounded-lg bg-gray-100 text-sm text-gray-800">
-            {supabaseError}
-          </div>
-          <div className="mt-4 text-sm text-gray-700 space-y-1">
-            <p>Create <code className="px-1 py-0.5 bg-gray-100 rounded">.env.local</code> with:</p>
-            <ul className="list-disc list-inside">
-              <li><code className="px-1 py-0.5 bg-gray-100 rounded">VITE_SUPABASE_URL</code></li>
-              <li><code className="px-1 py-0.5 bg-gray-100 rounded">VITE_SUPABASE_ANON_KEY</code></li>
-              <li><code className="px-1 py-0.5 bg-gray-100 rounded">VITE_SUPABASE_FUNCTIONS_PREFIX</code> (optional)</li>
-            </ul>
-          </div>
-        </Card>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthScreen onShowAuth={() => setShowAuth(!showAuth)} />;
-  }
-
   return (
     <AuthContext.Provider value={{ user, accessToken, signIn, signUp, signOut, loading }}>
-      {children}
+      {user ? children : <AuthScreen onShowAuth={() => setShowAuth(!showAuth)} />}
     </AuthContext.Provider>
   );
 }
@@ -215,7 +105,7 @@ function AuthScreen({ onShowAuth }: { onShowAuth: () => void }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const supabase = getSupabaseClient();
+  const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,33 +114,12 @@ function AuthScreen({ onShowAuth }: { onShowAuth: () => void }) {
 
     try {
       if (isSignUp) {
-        const response = await fetch(`${supabaseUrl}/functions/v1/${functionsPrefix}/auth/signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`
-          },
-          body: JSON.stringify({ email, password, name })
-        });
-      
-
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Signup failed');
-        }
+        await signUp(email, password, name);
+      } else {
+        await signIn(email, password);
       }
-
-      // Sign in after signup or direct sign in
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      if (signInError) throw signInError;
-      
-      // Auth state will be handled by the auth state listener
     } catch (error: any) {
-      setError(error.message || 'Authentication failed');
+      setError(error.message || "Authentication failed");
     } finally {
       setLoading(false);
     }

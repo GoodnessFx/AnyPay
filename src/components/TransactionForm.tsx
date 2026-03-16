@@ -21,14 +21,31 @@ interface RouteInfo {
   toAmount: number;
 }
 
-export function TransactionForm() {
+const currencies = ["USD", "NGN", "USDT", "BTC", "ETH"] as const;
+type Currency = (typeof currencies)[number];
+
+export function TransactionForm({
+  payMethod,
+  receiveMethod,
+}: {
+  payMethod: string | null;
+  receiveMethod: string | null;
+}) {
   const [payAmount, setPayAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("");
+  const [fromCurrency, setFromCurrency] = useState<Currency>("USD");
+  const [toCurrency, setToCurrency] = useState<Currency>("NGN");
   const [isProcessing, setIsProcessing] = useState(false);
   const [route, setRoute] = useState<RouteInfo | null>(null);
   const [success, setSuccess] = useState(false);
   const { user } = useAuth();
   const { calculateRoute, createTransaction } = useApi();
+
+  useEffect(() => {
+    // Clear quote if the user changes currencies/rails
+    setRoute(null);
+    setReceiveAmount("");
+  }, [fromCurrency, toCurrency, payMethod, receiveMethod]);
 
   const handleAmountChange = async (value: string) => {
     setPayAmount(value);
@@ -41,8 +58,8 @@ export function TransactionForm() {
 
     // Calculate optimal route
     const { data, error } = await calculateRoute({
-      fromCurrency: "USD",
-      toCurrency: "NGN", 
+      fromCurrency,
+      toCurrency,
       amount: parseFloat(value)
     });
 
@@ -72,11 +89,12 @@ export function TransactionForm() {
     
     try {
       const { data, error } = await createTransaction({
+        userId: user.id,
         fromCurrency: route.fromCurrency,
         toCurrency: route.toCurrency,
         fromAmount: route.fromAmount,
         toAmount: route.toAmount,
-        provider: route.provider,
+        provider: `${route.provider}${payMethod ? ` • pay:${payMethod}` : ""}${receiveMethod ? ` • receive:${receiveMethod}` : ""}`,
         fee: route.fee
       });
 
@@ -116,6 +134,34 @@ export function TransactionForm() {
         </div>
 
         <div className="space-y-6">
+          {/* Rails */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">From currency</label>
+              <select
+                value={fromCurrency}
+                onChange={(e) => setFromCurrency(e.target.value as Currency)}
+                className="w-full h-11 rounded-md border border-gray-200 bg-white px-3 text-sm"
+              >
+                {currencies.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">To currency</label>
+              <select
+                value={toCurrency}
+                onChange={(e) => setToCurrency(e.target.value as Currency)}
+                className="w-full h-11 rounded-md border border-gray-200 bg-white px-3 text-sm"
+              >
+                {currencies.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           {/* Pay Section */}
           <div className="space-y-3">
             <label className="block text-sm font-medium text-gray-700">You Pay</label>
@@ -128,7 +174,7 @@ export function TransactionForm() {
                 className="text-2xl h-16 pr-20"
               />
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                <Badge variant="secondary" className="bg-blue-800 text-white">USD</Badge>
+                <Badge variant="secondary" className="bg-blue-800 text-white">{fromCurrency}</Badge>
               </div>
             </div>
           </div>
@@ -154,7 +200,7 @@ export function TransactionForm() {
                 className="text-2xl h-16 pr-20 bg-gray-50"
               />
               <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                <Badge variant="secondary" className="bg-green-600 text-white">NGN</Badge>
+                <Badge variant="secondary" className="bg-green-600 text-white">{toCurrency}</Badge>
               </div>
             </div>
           </div>
