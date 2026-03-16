@@ -8,6 +8,8 @@ import { AddFundsPage } from "./pages/AddFundsPage";
 import { WithdrawPage } from "./pages/WithdrawPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { RateAlertsPage } from "./pages/RateAlertsPage";
+import { GroupPoolsPage } from "./pages/GroupPoolsPage";
 
 export default function App() {
   return (
@@ -22,6 +24,8 @@ export default function App() {
         <Route path="/withdraw" element={<WithdrawPage />} />
         <Route path="/history" element={<HistoryPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
+        <Route path="/trader" element={<RateAlertsPage />} />
+        <Route path="/pools" element={<GroupPoolsPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

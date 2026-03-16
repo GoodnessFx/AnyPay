@@ -72,6 +72,12 @@ export function DashboardPage() {
           <button onClick={() => navigate("/history")} className="ap-btn ap-btn-ghost">
             History
           </button>
+          <button onClick={() => navigate("/trader")} className="ap-btn ap-btn-ghost">
+            Trader Layer
+          </button>
+          <button onClick={() => navigate("/pools")} className="ap-btn ap-btn-ghost">
+            Group Pools
+          </button>
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">
