@@ -11,7 +11,7 @@ interface Balance {
   currency: string;
   amount: number;
   usdValue: number;
-  change24h: number;
+  change24h?: number;
 }
 
 export function WalletBalance() {
@@ -38,34 +38,12 @@ export function WalletBalance() {
                    currency === 'ETH' ? 1800 :
                    currency === 'USDT' ? 1 :
                    currency === 'NGN' ? 0.0022 : 1),
-          change24h: Math.random() * 10 - 5 // Mock change for demo
         }));
-        
-        // Check if all balances are zero, if so show demo data
-        const totalBalance = walletBalances.reduce((sum, balance) => sum + balance.usdValue, 0);
-        
-        if (totalBalance === 0) {
-          // Use demo data for better user experience
-          setBalances([
-            { currency: "USD", amount: 1250.50, usdValue: 1250.50, change24h: 2.5 },
-            { currency: "BTC", amount: 0.0324, usdValue: 1458.32, change24h: -1.2 },
-            { currency: "ETH", amount: 0.521, usdValue: 892.15, change24h: 3.8 },
-            { currency: "USDT", amount: 500.00, usdValue: 500.00, change24h: 0.1 },
-            { currency: "NGN", amount: 45000, usdValue: 98.65, change24h: -0.5 },
-          ]);
-        } else {
-          setBalances(walletBalances);
-        }
+
+        setBalances(walletBalances);
       } else {
         console.log("Wallet fetch error:", error);
-        // Use mock data as fallback
-        setBalances([
-          { currency: "USD", amount: 1250.50, usdValue: 1250.50, change24h: 2.5 },
-          { currency: "BTC", amount: 0.0324, usdValue: 1458.32, change24h: -1.2 },
-          { currency: "ETH", amount: 0.521, usdValue: 892.15, change24h: 3.8 },
-          { currency: "USDT", amount: 500.00, usdValue: 500.00, change24h: 0.1 },
-          { currency: "NGN", amount: 45000, usdValue: 98.65, change24h: -0.5 },
-        ]);
+        setBalances([]);
       }
       setLoading(false);
     };
@@ -150,15 +128,24 @@ export function WalletBalance() {
                 <p className="font-medium text-gray-900">
                   {isVisible ? `$${balance.usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "••••"}
                 </p>
-                <Badge
-                  variant={balance.change24h >= 0 ? "default" : "destructive"}
-                  className={`text-xs ${balance.change24h >= 0 ? "bg-green-100 text-green-800" : ""}`}
-                >
-                  {balance.change24h >= 0 ? "+" : ""}{balance.change24h.toFixed(2)}%
-                </Badge>
+                {typeof balance.change24h === "number" && (
+                  <Badge
+                    variant={balance.change24h >= 0 ? "default" : "destructive"}
+                    className={`text-xs ${balance.change24h >= 0 ? "bg-green-100 text-green-800" : ""}`}
+                  >
+                    {balance.change24h >= 0 ? "+" : ""}{balance.change24h.toFixed(2)}%
+                  </Badge>
+                )}
               </div>
             </motion.div>
             ))}
+          </div>
+        )}
+
+        {!loading && balances.length === 0 && (
+          <div className="text-center py-10">
+            <p className="text-sm text-gray-600">No wallet data yet.</p>
+            <p className="text-xs text-gray-500 mt-1">Add funds to get started.</p>
           </div>
         )}
       </Card>

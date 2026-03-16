@@ -1,39 +1,36 @@
 import { motion } from "motion/react";
 import { TrendingUp, Users, Globe, Zap } from "lucide-react";
 import { Card } from "./ui/card";
-
-const stats = [
-  {
-    icon: TrendingUp,
-    label: "24h Volume",
-    value: "$2.4M",
-    change: "+12.5%",
-    color: "green"
-  },
-  {
-    icon: Users,
-    label: "Active Users",
-    value: "45,230",
-    change: "+8.2%", 
-    color: "blue"
-  },
-  {
-    icon: Globe,
-    label: "Countries",
-    value: "127",
-    change: "+3",
-    color: "purple"
-  },
-  {
-    icon: Zap,
-    label: "Avg. Speed",
-    value: "< 30s",
-    change: "-5s",
-    color: "green"
-  }
-];
+import { useEffect, useState } from "react";
+import { useApi } from "../hooks/useApi";
 
 export function QuickStats() {
+  const { getStats } = useApi();
+  const [stats, setStats] = useState<
+    { icon: any; label: string; value: string; change: string; color: "green" | "blue" | "purple" }[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      const { data } = await getStats();
+      if (data?.stats) {
+        const s = data.stats;
+        setStats([
+          { icon: TrendingUp, label: "24h Volume", value: `$${Number(s.totalVolume24h).toLocaleString()}`, change: "Live", color: "green" },
+          { icon: Users, label: "Active Users", value: Number(s.activeUsers).toLocaleString(), change: "Live", color: "blue" },
+          { icon: Globe, label: "Countries", value: Number(s.countriesSupported).toLocaleString(), change: "Live", color: "purple" },
+          { icon: Zap, label: "Avg. Speed", value: `${s.averageSettlementTime}s`, change: "Live", color: "green" },
+        ]);
+      } else {
+        setStats([]);
+      }
+      setLoading(false);
+    };
+    fetchStats();
+  }, [getStats]);
+
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -41,7 +38,16 @@ export function QuickStats() {
       transition={{ duration: 0.5, delay: 0.5 }}
       className="grid grid-cols-2 lg:grid-cols-4 gap-4"
     >
-      {stats.map((stat, index) => (
+      {loading ? (
+        [...Array(4)].map((_, i) => (
+          <Card key={i} className="p-4 text-center">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-100 animate-pulse" />
+            <div className="h-6 w-24 mx-auto bg-gray-100 rounded animate-pulse mb-2" />
+            <div className="h-4 w-20 mx-auto bg-gray-100 rounded animate-pulse" />
+          </Card>
+        ))
+      ) : (
+        stats.map((stat, index) => (
         <motion.div
           key={stat.label}
           initial={{ scale: 0.9, opacity: 0 }}
@@ -71,7 +77,8 @@ export function QuickStats() {
             </span>
           </Card>
         </motion.div>
-      ))}
+      ))
+      )}
     </motion.div>
   );
 }

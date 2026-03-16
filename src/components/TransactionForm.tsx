@@ -8,7 +8,7 @@ import { Badge } from "./ui/badge";
 import { Separator } from "./ui/separator";
 import { useAuth } from "./AuthWrapper";
 import { useApi } from "../hooks/useApi";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface RouteInfo {
   provider: string;
@@ -47,13 +47,21 @@ export function TransactionForm() {
     });
 
     if (data && data.route) {
-      setRoute(data.route);
-      setReceiveAmount(data.route.toAmount.toLocaleString());
+      const normalizedRoute: RouteInfo = {
+        provider: data.route.provider,
+        fee: data.route.fee,
+        time: data.route.time ?? data.route.estimatedTime ?? "< 30 seconds",
+        rate: data.route.rate,
+        fromCurrency: data.route.fromCurrency,
+        toCurrency: data.route.toCurrency,
+        fromAmount: data.route.fromAmount,
+        toAmount: data.route.toAmount
+      };
+      setRoute(normalizedRoute);
+      setReceiveAmount(normalizedRoute.toAmount.toLocaleString());
     } else {
       console.log("Route calculation error:", error);
-      // Fallback calculation
-      const converted = parseFloat(value) * 45000;
-      setReceiveAmount(converted ? converted.toLocaleString() : "");
+      setReceiveAmount("");
     }
   };
 

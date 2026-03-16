@@ -106,6 +106,7 @@ app.post('/make-server-ed0cf80c/transactions', async (c) => {
     const transaction = {
       id: transactionId,
       userId: user.id,
+      type: 'sent',
       fromCurrency,
       toCurrency,
       fromAmount,
@@ -113,7 +114,7 @@ app.post('/make-server-ed0cf80c/transactions', async (c) => {
       provider,
       fee,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      timestamp: new Date().toISOString()
     };
 
     // Store transaction
@@ -126,7 +127,7 @@ app.post('/make-server-ed0cf80c/transactions', async (c) => {
     transactions.unshift(transactionId);
     await kv.set(userTransactionsKey, JSON.stringify(transactions.slice(0, 100))); // Keep last 100
 
-    // Simulate processing delay
+    // Process immediately for MVP ledger updates
     setTimeout(async () => {
       try {
         const updatedTransaction = { ...transaction, status: 'completed' };
@@ -187,20 +188,80 @@ app.get('/make-server-ed0cf80c/transactions/:userId', async (c) => {
   }
 });
 
+// Wallet top-up (internal ledger)
+app.post('/make-server-ed0cf80c/wallet/:userId/topup', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+
+    const { data: { user } } = await supabase.auth.getUser(accessToken);
+    if (!user || user.id !== userId) {
+      return c.json({ error: 'Unauthorized access to wallet' }, 401);
+    }
+
+    const { currency, amount } = await c.req.json();
+    if (!currency || typeof amount !== 'number' || amount <= 0) {
+      return c.json({ error: 'Invalid topup payload' }, 400);
+    }
+
+    const walletData = await kv.get(`wallet:${userId}`);
+    const wallet = walletData ? JSON.parse(walletData) : { balances: {}, createdAt: new Date().toISOString() };
+    wallet.balances[currency] = (wallet.balances[currency] || 0) + amount;
+    await kv.set(`wallet:${userId}`, JSON.stringify(wallet));
+
+    return c.json({ wallet });
+  } catch (error) {
+    console.log(`Wallet topup error: ${error}`);
+    return c.json({ error: 'Error topping up wallet' }, 500);
+  }
+});
+
+// Wallet withdraw (internal ledger)
+app.post('/make-server-ed0cf80c/wallet/:userId/withdraw', async (c) => {
+  try {
+    const userId = c.req.param('userId');
+    const accessToken = c.req.header('Authorization')?.split(' ')[1];
+
+    const { data: { user } } = await supabase.auth.getUser(accessToken);
+    if (!user || user.id !== userId) {
+      return c.json({ error: 'Unauthorized access to wallet' }, 401);
+    }
+
+    const { currency, amount } = await c.req.json();
+    if (!currency || typeof amount !== 'number' || amount <= 0) {
+      return c.json({ error: 'Invalid withdraw payload' }, 400);
+    }
+
+    const walletData = await kv.get(`wallet:${userId}`);
+    const wallet = walletData ? JSON.parse(walletData) : { balances: {}, createdAt: new Date().toISOString() };
+    const current = wallet.balances[currency] || 0;
+    if (current < amount) {
+      return c.json({ error: 'Insufficient balance' }, 400);
+    }
+    wallet.balances[currency] = current - amount;
+    await kv.set(`wallet:${userId}`, JSON.stringify(wallet));
+
+    return c.json({ wallet });
+  } catch (error) {
+    console.log(`Wallet withdraw error: ${error}`);
+    return c.json({ error: 'Error withdrawing from wallet' }, 500);
+  }
+});
+
 // Get optimal route for conversion
 app.post('/make-server-ed0cf80c/route', async (c) => {
   try {
     const { fromCurrency, toCurrency, amount } = await c.req.json();
     
-    // Mock routing logic - in production this would query multiple liquidity providers
-    const mockRates: Record<string, Record<string, number>> = {
+    // Baseline rates for MVP. Replace with live pricing sources as you add providers.
+    const baselineRates: Record<string, Record<string, number>> = {
       USD: { NGN: 45000, KES: 130, GHS: 12 },
       BTC: { USD: 45000, ETH: 26.5 },
       ETH: { USD: 1800, USDT: 1800 },
       USDT: { USD: 1, NGN: 45000 }
     };
 
-    const rate = mockRates[fromCurrency]?.[toCurrency] || 1;
+    const rate = baselineRates[fromCurrency]?.[toCurrency] || 1;
     const fee = Math.max(0.25, amount * 0.001); // 0.1% fee, minimum $0.25
     const outputAmount = amount * rate;
     
@@ -212,7 +273,7 @@ app.post('/make-server-ed0cf80c/route', async (c) => {
       rate,
       fee,
       provider: 'Lightning Network',
-      estimatedTime: '< 30 seconds',
+      time: '< 30 seconds',
       confidence: 0.98
     };
 

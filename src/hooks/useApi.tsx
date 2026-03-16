@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { projectId, publicAnonKey } from "../utils/supabase/info";
+import { functionsPrefix, publicAnonKey, supabaseUrl } from "../utils/supabase/info";
 import { useAuth } from "../components/AuthWrapper";
 
 interface ApiResponse<T> {
@@ -27,7 +27,7 @@ export function useApi() {
         };
 
         const response = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/make-server-ed0cf80c${endpoint}`,
+          `${supabaseUrl}/functions/v1/${functionsPrefix}${endpoint}`,
           {
             ...options,
             headers,
@@ -68,6 +68,20 @@ export function useApi() {
     return apiCall<{ wallet: { balances: Record<string, number> } }>(`/wallet/${userId}`);
   }, [apiCall]);
 
+  const topUpWallet = useCallback(async (userId: string, payload: { currency: string; amount: number }) => {
+    return apiCall<{ wallet: { balances: Record<string, number> } }>(`/wallet/${userId}/topup`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }, [apiCall]);
+
+  const withdrawWallet = useCallback(async (userId: string, payload: { currency: string; amount: number }) => {
+    return apiCall<{ wallet: { balances: Record<string, number> } }>(`/wallet/${userId}/withdraw`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }, [apiCall]);
+
   // Transaction operations
   const createTransaction = useCallback(async (transactionData: any) => {
     return apiCall<{ transaction: any }>('/transactions', {
@@ -96,6 +110,8 @@ export function useApi() {
   return {
     loading,
     getWallet,
+    topUpWallet,
+    withdrawWallet,
     createTransaction,
     getTransactions,
     calculateRoute,

@@ -1,7 +1,7 @@
 import { useState, useEffect, createContext, useContext } from "react";
 import { motion } from "motion/react";
 import { getSupabaseClient } from "../utils/supabase/client";
-import { projectId, publicAnonKey } from "../utils/supabase/info";
+import { functionsPrefix, publicAnonKey, supabaseUrl } from "../utils/supabase/info";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
@@ -38,9 +38,24 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [showAuth, setShowAuth] = useState(false);
 
-  const supabase = getSupabaseClient();
+  const [supabaseError, setSupabaseError] = useState<string | null>(null);
+  const [supabase, setSupabase] = useState<ReturnType<typeof getSupabaseClient> | null>(null);
 
   useEffect(() => {
+    try {
+      setSupabase(getSupabaseClient());
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Supabase configuration error";
+      setSupabaseError(msg);
+      setSupabase(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
     // Check for existing session
     const checkSession = async () => {
       try {
@@ -87,6 +102,7 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
+      if (!supabase) throw new Error("Supabase not configured");
       const { data: { session }, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -110,7 +126,8 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name: string) => {
     try {
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-ed0cf80c/auth/signup`, {
+      if (!supabaseUrl || !functionsPrefix || !publicAnonKey) throw new Error("Supabase not configured");
+      const response = await fetch(`${supabaseUrl}/functions/v1/${functionsPrefix}/auth/signup`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,6 +151,7 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      if (!supabase) throw new Error("Supabase not configured");
       await supabase.auth.signOut();
       setUser(null);
       setAccessToken(null);
@@ -150,6 +168,30 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           className="w-8 h-8 border-2 border-blue-800 border-t-transparent rounded-full"
         />
+      </div>
+    );
+  }
+
+  if (supabaseError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <Card className="p-6 max-w-lg w-full">
+          <h1 className="text-xl font-semibold text-gray-900">Setup required</h1>
+          <p className="text-sm text-gray-600 mt-2">
+            This app needs Supabase environment variables before it can run.
+          </p>
+          <div className="mt-4 p-3 rounded-lg bg-gray-100 text-sm text-gray-800">
+            {supabaseError}
+          </div>
+          <div className="mt-4 text-sm text-gray-700 space-y-1">
+            <p>Create <code className="px-1 py-0.5 bg-gray-100 rounded">.env.local</code> with:</p>
+            <ul className="list-disc list-inside">
+              <li><code className="px-1 py-0.5 bg-gray-100 rounded">VITE_SUPABASE_URL</code></li>
+              <li><code className="px-1 py-0.5 bg-gray-100 rounded">VITE_SUPABASE_ANON_KEY</code></li>
+              <li><code className="px-1 py-0.5 bg-gray-100 rounded">VITE_SUPABASE_FUNCTIONS_PREFIX</code> (optional)</li>
+            </ul>
+          </div>
+        </Card>
       </div>
     );
   }
@@ -182,7 +224,7 @@ function AuthScreen({ onShowAuth }: { onShowAuth: () => void }) {
 
     try {
       if (isSignUp) {
-        const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-ed0cf80c/auth/signup`, {
+        const response = await fetch(`${supabaseUrl}/functions/v1/${functionsPrefix}/auth/signup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -190,6 +232,7 @@ function AuthScreen({ onShowAuth }: { onShowAuth: () => void }) {
           },
           body: JSON.stringify({ email, password, name })
         });
+      
 
         const data = await response.json();
         if (!response.ok) {

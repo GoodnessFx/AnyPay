@@ -20,57 +20,6 @@ interface Transaction {
   provider: string;
 }
 
-const mockTransactions: Transaction[] = [
-  {
-    id: "tx_001",
-    type: "sent",
-    fromCurrency: "USD",
-    toCurrency: "NGN",
-    fromAmount: 100,
-    toAmount: 45000,
-    status: "completed",
-    timestamp: "2024-01-15T14:30:00Z",
-    fee: 0.25,
-    provider: "Lightning Network"
-  },
-  {
-    id: "tx_002",
-    type: "received",
-    fromCurrency: "BTC",
-    toCurrency: "USD",
-    fromAmount: 0.002,
-    toAmount: 90,
-    status: "pending",
-    timestamp: "2024-01-15T13:15:00Z",
-    fee: 0.50,
-    provider: "DEX Bridge"
-  },
-  {
-    id: "tx_003",
-    type: "sent",
-    fromCurrency: "ETH",
-    toCurrency: "USDT",
-    fromAmount: 0.05,
-    toAmount: 89.50,
-    status: "completed",
-    timestamp: "2024-01-15T11:45:00Z",
-    fee: 1.25,
-    provider: "Uniswap V3"
-  },
-  {
-    id: "tx_004",
-    type: "sent",
-    fromCurrency: "USD",
-    toCurrency: "KES",
-    fromAmount: 50,
-    toAmount: 6500,
-    status: "failed",
-    timestamp: "2024-01-15T10:20:00Z",
-    fee: 0.15,
-    provider: "M-Pesa Bridge"
-  }
-];
-
 export function TransactionHistory() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,8 +37,7 @@ export function TransactionHistory() {
         setTransactions(data.transactions);
       } else {
         console.log("Transactions fetch error:", error);
-        // Use mock data as fallback
-        setTransactions(mockTransactions);
+        setTransactions([]);
       }
       setLoading(false);
     };
