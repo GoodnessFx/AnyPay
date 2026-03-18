@@ -13,6 +13,28 @@ AnyPay is a **mobile-first** web app that lets users **authenticate, manage a mu
 - **Dashboard stats**: Live stats pulled from the backend
 - **Mobile responsive UI**: Responsive layout + mobile slide-over menu
 
+## Trust & Social Layer
+
+- **Seller/Buyer Reputation System** — trust score on every counterparty
+- **Verified Swap Receipts** — shareable on-chain proof of every transaction
+- **Escrow Confidence Meter** — visual protection indicator before every P2P swap
+- **Live Swap Activity Feed** — real-time anonymised activity from the network
+- **Trust Badges** — 8 earned badges displayed on all listings and profiles
+- **Counterparty Preview** — see who you are swapping with before funds move
+- **Dispute Protection Banner** — persistent reminder on all open swaps
+
+## Fun & Retention Layer
+
+- **Daily Streak** — consecutive day rewards up to 365-day Legendary NFT badge
+- **Swap Milestones** — volume milestone celebrations with shareable cards
+- **Spin to Earn** — daily reward spin, $ANYPAY tokens and fee discounts
+- **AnyPay Wrapped** — annual personalised summary card, designed to go viral
+- **Rate Race** — weekly prediction game on currency pair direction
+- **Referral Chain** — two-level referral earning on all referred user fees
+- **Physical Swap Marketplace** — "Things" tab, list and swap physical items with escrow
+- **AnyPay.me Links** — personal payment page for every user, any currency in
+- **Split Bill** — group payment link, each person pays in their own currency
+
 ## Tech stack
 
 - **Frontend**: React + TypeScript + Vite

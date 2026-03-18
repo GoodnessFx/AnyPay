@@ -125,8 +125,16 @@ export type AnyPayUser = {
   name: string;
   email?: string;
   country: string;
+  city?: string;
   createdAt: string;
   walletAddress?: string;
+  trustScore: number; // 0-100
+  badges: string[];
+  isIdVerified: boolean;
+  isPhoneVerified: boolean;
+  streakDays: number;
+  totalSwapVolumeUsd: number;
+  lastActiveAt: string;
 };
 
 export type Wallet = Record<Currency, number>;

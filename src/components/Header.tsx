@@ -1,9 +1,12 @@
 import { motion } from "motion/react";
-import { ArrowLeftRight, Settings, User, Bell, Menu } from "lucide-react";
+import { ArrowLeftRight, Settings, User, Bell, Menu, Flame } from "lucide-react";
 import { useState } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { MobileMenu } from "./MobileMenu";
+import { useAppStore } from "../store/useAppStore";
+import { TrustScoreRing } from "./TrustComponents";
+import { Avatar, AvatarFallback } from "./ui/avatar";
 
 interface HeaderProps {
   onSettingsClick?: () => void;
@@ -13,6 +16,7 @@ interface HeaderProps {
 
 export function Header({ onSettingsClick, onProfileClick, onNotificationsClick }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const user = useAppStore((s) => s.user);
 
   return (
     <>
@@ -33,52 +37,63 @@ export function Header({ onSettingsClick, onProfileClick, onNotificationsClick }
           </motion.div>
           <div>
             <h1 className="text-blue-800 font-bold text-xl">AnyPay</h1>
-            <p className="text-gray-500 text-sm">Universal Value Router</p>
+            <p className="text-gray-500 text-sm hidden sm:block">Universal Value Router</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Badge variant="secondary" className="bg-green-100 text-green-800">
+        <div className="flex items-center gap-2 sm:gap-4">
+          {user && (
+            <div className="flex items-center gap-1 bg-orange-50 text-orange-600 px-2 py-1 rounded-full border border-orange-100">
+              <Flame className="size-3 fill-orange-500" />
+              <span className="text-[10px] font-bold tabular-nums">{user.streakDays ?? 0}</span>
+            </div>
+          )}
+
+          <Badge variant="secondary" className="bg-green-100 text-green-800 hidden xs:inline-flex">
             Connected
           </Badge>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="flex items-center gap-1 sm:gap-4">
             <Button 
               variant="ghost" 
               size="icon" 
-              className="relative"
+              className="relative h-8 w-8 sm:h-10 sm:w-10"
               onClick={onNotificationsClick}
             >
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+              <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full border-2 border-white"></span>
             </Button>
             
             <Button 
               variant="ghost" 
               size="icon"
+              className="hidden sm:inline-flex"
               onClick={onSettingsClick}
             >
               <Settings className="w-5 h-5" />
             </Button>
             
-            <Button 
-              variant="ghost" 
-              size="icon"
+            <button 
+              className="focus:outline-none ml-1 sm:ml-0"
               onClick={onProfileClick}
             >
-              <User className="w-5 h-5" />
-            </Button>
+              <TrustScoreRing score={user?.trustScore ?? 40} size={36} strokeWidth={2}>
+                <Avatar className="size-7">
+                  <AvatarFallback className="text-[8px]">{user?.name?.slice(0, 2).toUpperCase() ?? "AP"}</AvatarFallback>
+                </Avatar>
+              </TrustScoreRing>
+            </button>
           </div>
 
           {/* Mobile Menu Button */}
           <Button 
             variant="ghost" 
             size="icon"
-            className="md:hidden"
+            className="md:hidden h-8 w-8 sm:h-10 sm:w-10"
             onClick={() => setIsMobileMenuOpen(true)}
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
           </Button>
         </div>
       </div>

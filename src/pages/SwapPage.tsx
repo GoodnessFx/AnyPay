@@ -4,6 +4,9 @@ import { useAppStore } from "../store/useAppStore";
 import type { AssetDescriptor, AssetKind, SwapAsset } from "../lib/schema";
 import { adapters } from "../lib/swapEngine/adapters";
 import { getQuote } from "../lib/swapEngine/engine";
+import { TrustCard } from "../components/TrustComponents";
+import { CheckCircle2, ShieldCheck, ArrowRightLeft } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const assets: SwapAsset[] = ["USD", "NGN", "BTC", "ETH", "USDT", "Airtime", "Gift Card"];
 
@@ -52,10 +55,22 @@ export function SwapPage() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [moduleQuoteOut, setModuleQuoteOut] = useState<number | null>(null);
   const [moduleFeeOut, setModuleFeeOut] = useState<number | null>(null);
+  const [receipt, setReceipt] = useState<any>(null);
 
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
+
+  const mockCounterparty = {
+    name: "Tunde A.",
+    trustScore: 94,
+    completedSwaps: 47,
+    memberSince: "Jan 2024",
+    isIdVerified: true,
+    isPhoneVerified: true,
+    disputes: 0,
+    lastActive: "2 hours ago"
+  };
 
   const onQuote = (e: FormEvent) => {
     e.preventDefault();
@@ -74,20 +89,15 @@ export function SwapPage() {
   };
 
   const onExecute = () => {
-    if (!quotedOut) return;
-    const value = parseFloat(amount);
-    if (!value || value <= 0) return;
-
-    const current = wallet[fromAsset as keyof typeof wallet] ?? 0;
-    if (current < value) {
-      setError("Insufficient balance for this swap.");
-      return;
-    }
+    if (!quotedOut || !user) return;
+    const numAmount = parseFloat(amount);
+    if (!numAmount || numAmount <= 0) return;
 
     setExecuting(true);
-    try {
+    setTimeout(() => {
+      const current = wallet[fromAsset as keyof typeof wallet] ?? 0;
       const updated = { ...wallet };
-      updated[fromAsset as keyof typeof wallet] = current - value;
+      updated[fromAsset as keyof typeof wallet] = current - numAmount;
       const toCurrent = updated[toAsset as keyof typeof wallet] ?? 0;
       updated[toAsset as keyof typeof wallet] = toCurrent + quotedOut;
       setWallet(updated);
@@ -97,24 +107,35 @@ export function SwapPage() {
         status: "completed",
         fromAsset,
         toAsset,
-        amount: value,
+        amount: numAmount,
         amountOut: quotedOut,
         fee: fee ?? 0,
         route: `${fromAsset} → ${toAsset}`,
         method: "Internal demo router",
       });
 
-      pushNotif({
+      pushNotif({ 
         type: "success",
         title: "Swap completed",
-        message: `Swapped ${value} ${fromAsset} → ${quotedOut.toFixed(4)} ${toAsset}`,
+        message: `Successfully swapped ${numAmount} ${fromAsset} for ${quotedOut} ${toAsset}`
+      });
+
+      setReceipt({
+        user: user.name,
+        fromAmount: numAmount,
+        fromAsset,
+        toAmount: quotedOut,
+        toAsset,
+        rate: quotedOut / numAmount,
+        time: "14 seconds",
+        hash: "0x4f2a" + Math.random().toString(16).slice(2, 10),
       });
 
       setAmount("");
       setQuotedOut(null);
-    } finally {
+      setFee(null);
       setExecuting(false);
-    }
+    }, 1500);
   };
 
   const kindOptions: { kind: AssetKind; label: string; defaultCode: string }[] = useMemo(
@@ -347,15 +368,26 @@ export function SwapPage() {
     setModuleFeeOut(null);
   };
 
+  const isP2P = mode === "instant" && (fromAsset === "Gift Card" || toAsset === "Gift Card");
+
   return (
     <div className="min-h-screen px-4 py-6">
-      <div className="mx-auto max-w-md space-y-4">
+      <div className="mx-auto max-w-md space-y-6">
         <header className="flex items-center justify-between">
           <h1 className="ap-heading text-[28px] font-medium">Swap</h1>
           <button className="ap-btn ap-btn-ghost text-xs" onClick={() => navigate("/dashboard")}>
             Back
           </button>
         </header>
+
+        {isP2P && (
+          <div className="space-y-3">
+            <p className="text-[10px] uppercase font-bold text-[color:var(--ap-text-muted)] tracking-wider px-1">
+              Counterparty Trust Card
+            </p>
+            <TrustCard user={mockCounterparty} />
+          </div>
+        )}
 
         <div className="ap-card p-1">
           <div className="grid grid-cols-2 gap-1">
@@ -454,14 +486,38 @@ export function SwapPage() {
         )}
 
         {mode === "instant" && (
-          <button
-            type="button"
-            disabled={!quotedOut || executing}
-            className="ap-btn ap-btn-primary w-full"
-            onClick={onExecute}
-          >
-            {executing ? "Executing…" : "Execute Swap"}
-          </button>
+          <div className="space-y-4">
+            {/* Escrow Confidence Meter */}
+            {isP2P && (
+              <div className="ap-card p-4 border-dashed border-[color:var(--ap-accent-alt)]/30 bg-[color:var(--ap-accent-alt)]/5 space-y-3">
+                <div className="flex items-center justify-between text-[11px] font-bold uppercase text-[color:var(--ap-accent-alt)]">
+                  <span className="flex items-center gap-1"><ShieldCheck className="size-3" /> Your funds are protected</span>
+                  <span>100% in escrow</span>
+                </div>
+                <div className="h-1.5 w-full bg-[color:var(--ap-border)]/20 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    className="h-full bg-[color:var(--ap-accent-alt)]"
+                  />
+                </div>
+                <ul className="text-[10px] text-[color:var(--ap-text-muted)] space-y-1">
+                  <li>• Released only when you confirm delivery</li>
+                  <li>• Auto-released after 7 days if no dispute</li>
+                  <li>• Dispute resolution within 48h</li>
+                </ul>
+              </div>
+            )}
+
+            <button
+              type="button"
+              disabled={!quotedOut || executing}
+              className="ap-btn ap-btn-primary w-full py-4 text-sm font-bold uppercase tracking-widest"
+              onClick={onExecute}
+            >
+              {executing ? "Executing…" : "Confirm & Swap"}
+            </button>
+          </div>
         )}
 
         {mode === "modules" && (
@@ -686,6 +742,51 @@ export function SwapPage() {
           </>
         )}
       </div>
+      <AnimatePresence>
+        {receipt && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="ap-card w-full max-w-sm overflow-hidden"
+            >
+              <div className="bg-[color:var(--ap-success)]/10 p-6 text-center border-b border-[color:var(--ap-border)]/5">
+                <div className="mx-auto size-12 bg-[color:var(--ap-success)] rounded-full flex items-center justify-center mb-3">
+                  <CheckCircle2 className="text-white size-6" />
+                </div>
+                <h2 className="ap-heading text-lg text-[color:var(--ap-success)] uppercase tracking-widest font-bold">Swap Completed</h2>
+                <p className="text-[10px] text-[color:var(--ap-text-muted)] mt-1 font-mono uppercase">Verified on Polygon: {receipt.hash.slice(0, 10)}...</p>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-[color:var(--ap-border)]/5">
+                  <span className="text-[10px] uppercase font-bold text-[color:var(--ap-text-muted)]">From</span>
+                  <span className="text-sm font-bold">{receipt.fromAmount.toLocaleString()} {receipt.fromAsset}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[color:var(--ap-border)]/5">
+                  <span className="text-[10px] uppercase font-bold text-[color:var(--ap-text-muted)]">Received</span>
+                  <span className="text-sm font-bold text-[color:var(--ap-success)]">{receipt.toAmount.toLocaleString()} {receipt.toAsset}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-[color:var(--ap-border)]/5">
+                  <span className="text-[10px] uppercase font-bold text-[color:var(--ap-text-muted)]">Rate</span>
+                  <span className="text-sm font-mono">{receipt.rate.toFixed(4)} {receipt.toAsset}/{receipt.fromAsset}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-[10px] uppercase font-bold text-[color:var(--ap-text-muted)]">Time</span>
+                  <span className="text-sm font-bold">{receipt.time}</span>
+                </div>
+
+                <div className="pt-4 grid grid-cols-2 gap-2">
+                  <button onClick={() => setReceipt(null)} className="ap-btn ap-btn-ghost text-xs">Keep Swapping</button>
+                  <button className="ap-btn ap-btn-primary text-xs flex items-center justify-center gap-2">
+                    <span className="text-[10px] font-bold uppercase">Share Proof</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

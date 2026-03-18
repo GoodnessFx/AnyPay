@@ -10,6 +10,7 @@ import { HistoryPage } from "./pages/HistoryPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { RateAlertsPage } from "./pages/RateAlertsPage";
 import { GroupPoolsPage } from "./pages/GroupPoolsPage";
+import { PaymentPage } from "./pages/PaymentPage";
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/trader" element={<RateAlertsPage />} />
         <Route path="/pools" element={<GroupPoolsPage />} />
+        <Route path="/u/:username" element={<PaymentPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

@@ -1,5 +1,8 @@
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useAppStore } from "../store/useAppStore";
+import { useState } from "react";
+import { Switch } from "../components/ui/switch";
+import { Label } from "../components/ui/label";
 
 function formatUsd(value: number) {
   return value.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 });
@@ -11,6 +14,7 @@ export function DashboardPage() {
   const wallet = useAppStore((s) => s.wallet);
   const allTxns = useAppStore((s) => s.txns);
   const notifs = useAppStore((s) => s.notifs);
+  const [showLiveFeed, setShowLiveFeed] = useState(false);
 
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -18,6 +22,13 @@ export function DashboardPage() {
 
   const totalUsd = wallet.USD + wallet.USDT; // simple approximation for MVP
   const txns = allTxns.slice(0, 5);
+
+  const mockLiveFeed = [
+    { id: "1", name: "Emeka", city: "Lagos", action: "converted ₦200k → USDT", time: "3 min ago", icon: "🔄" },
+    { id: "2", name: "Aisha", city: "Nairobi", action: "sent $50 via M-Pesa", time: "7 min ago", icon: "🔄" },
+    { id: "3", name: "System", city: "Global", action: "Gift card swap completed — $100 Amazon", time: "12 min ago", icon: "✅" },
+    { id: "4", name: "Chidi", city: "Enugu", action: "sold iPhone 13 for 280 USDT", time: "18 min ago", icon: "🔄" },
+  ];
 
   return (
     <div className="min-h-screen px-4 py-6">
@@ -78,6 +89,34 @@ export function DashboardPage() {
           <button onClick={() => navigate("/pools")} className="ap-btn ap-btn-ghost">
             Group Pools
           </button>
+          <button onClick={() => alert("Split Bill link generated: anypay.me/split/dinner-123")} className="ap-btn ap-btn-ghost flex items-center gap-2">
+            Split Bill
+          </button>
+        </section>
+
+        <section className="ap-card p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="ap-heading text-[14px] font-medium uppercase tracking-wider text-[color:var(--ap-text-muted)]">Live Swap Activity</h2>
+            <div className="flex items-center space-x-2">
+              <Switch id="live-feed" checked={showLiveFeed} onCheckedChange={setShowLiveFeed} />
+              <Label htmlFor="live-feed" className="text-[10px] uppercase font-bold text-[color:var(--ap-text-muted)]">Show activity</Label>
+            </div>
+          </div>
+          
+          {showLiveFeed ? (
+            <div className="space-y-2">
+              {mockLiveFeed.map((item) => (
+                <div key={item.id} className="flex items-center gap-2 text-[11px] py-1 border-b border-[color:var(--ap-border)]/5 last:border-0">
+                  <span className="text-base">{item.icon}</span>
+                  <span className="font-bold text-[color:var(--ap-text)]">{item.name} ({item.city})</span>
+                  <span className="text-[color:var(--ap-text-muted)] flex-1">{item.action}</span>
+                  <span className="text-[color:var(--ap-text-muted)] tabular-nums">{item.time}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-[11px] text-[color:var(--ap-text-muted)] italic text-center py-2">Activity feed is hidden. Toggle to see what's happening globally.</p>
+          )}
         </section>
 
         <section className="grid gap-4 md:grid-cols-2">

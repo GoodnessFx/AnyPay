@@ -106,8 +106,16 @@ export const useAppStore = create<AppState>()(
       groupPools: seeded.groupPools,
 
       setUser: (user) => {
-        set({ user });
-        writeStorage(LS_KEYS.user, (user ?? null) as any);
+        const enhancedUser = user ? {
+          ...user,
+          trustScore: user.trustScore ?? 40,
+          badges: user.badges ?? [],
+          streakDays: user.streakDays ?? 0,
+          totalSwapVolumeUsd: user.totalSwapVolumeUsd ?? 0,
+          lastActiveAt: nowIso(),
+        } : null;
+        set({ user: enhancedUser });
+        writeStorage(LS_KEYS.user, enhancedUser as any);
       },
 
       setWallet: (wallet) => {
